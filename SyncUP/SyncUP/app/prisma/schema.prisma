@@ -1,0 +1,114 @@
+generator client {
+  provider = "prisma-client-js"
+  previewFeatures = ["relationJoins"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id       Int       @id @default(autoincrement())
+  email    String    @unique
+  name     String
+  password String?
+  task     Task?     @relation(fields: [taskId], references: [id])
+  taskId   Int?
+  cards    Card[]    @relation("UserToCard")
+  boards   Board[]   @relation("UserToBoard")
+  photo    String?
+  phone    String?
+  role     Role      @default(User)
+  comments Comment[]
+  notifications Notification[]
+  @@index([email])
+}
+
+model Task {
+  id        Int      @id @default(autoincrement())
+  user      User[]
+  category  String?
+  color     String?
+  createdAt DateTime @default(now())
+  dueDate   DateTime @default(now())
+  order     Int      @default(autoincrement())
+  cards     Card[]
+  boardId   Int?
+  board     Board?   @relation(fields: [boardId], references: [id])
+  @@index([order,boardId])
+}
+
+model Card {
+  id            Int          @id @default(autoincrement())
+  name          String
+  description   String?
+  order         Int          @default(autoincrement())
+  photo         String?
+  createdAt     DateTime     @default(now())
+  dueDate       DateTime     @default(now())
+  attachments   Attachment[]
+  comments      Comment[]
+  taskId        Int
+  task          Task         @relation(fields: [taskId], references: [id])
+  isCompleted   Boolean      @default(false)
+  assignedUsers User[]       @relation("UserToCard")
+  label         Label[]      @relation("LabelToCard")
+  isBold         Boolean     @default(false)
+  isItalic      Boolean      @default(false)
+  @@index([taskId])
+}
+
+model Comment {
+  id          Int      @id @default(autoincrement())
+  description String
+  createdAt   DateTime @default(now())
+  card        Card?    @relation(fields: [cardId], references: [id])
+  cardId      Int?
+  user        User?    @relation(fields: [userId], references: [id])
+  userId      Int?
+  @@index([cardId])
+}
+
+model Attachment {
+  id     Int   @id @default(autoincrement())
+  card   Card? @relation(fields: [cardId], references: [id])
+  cardId Int?
+  file   String
+  name   String
+  time   DateTime @default(now())
+}
+
+model Board {
+  id         Int        @id @default(autoincrement())
+  name       String
+  background String?
+  visibility Visibility
+  tasks      Task[]
+  users      User[]     @relation("UserToBoard")
+  @@index([id,visibility])
+}
+
+enum Visibility {
+  PUBLIC
+  PRIVATE
+}
+
+enum Role {
+  SuperAdmin
+  Admin
+  User
+}
+
+model Label {
+  id    String @id @default(uuid())
+  name  String
+  color String
+  cards Card[] @relation("LabelToCard")
+}
+model Notification {
+  id        Int      @id @default(autoincrement())
+  message   String
+  createdAt DateTime @default(now())
+  users     User[]
+}
